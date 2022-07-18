@@ -12,8 +12,8 @@ BOT_NAME = 'personalized_hackernews'
 SPIDER_MODULES = ['personalized_hackernews.spiders']
 NEWSPIDER_MODULE = 'personalized_hackernews.spiders'
 ITEM_PIPELINES = {
-    #'personalized_hackernews.pipelines.PersonalizedHackernewsPipeline': 300,
-    'personalized_hackernews.pipelines.JsonWriterPipeline': 800,
+    'personalized_hackernews.pipelines.HNPostPipeline': 300,
+    'personalized_hackernews.pipelines.SitePipeline': 800,
 }
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent

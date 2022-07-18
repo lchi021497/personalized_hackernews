@@ -1,7 +1,7 @@
 import scrapy
 from scrapy.loader import ItemLoader
 from time import strftime, gmtime
-from item import SiteItem
+from items import SiteItem, HNItem
 
 class HNEntry:
     def __init__(self, title, src_url, src, score, author, age):
@@ -84,13 +84,15 @@ class HNSpider(scrapy.Spider):
         self.check_list_len("authors", authors, list_len)
         self.check_list_len("ages", ages, list_len)
 
+        l = ItemLoader(item=HNItem(), response=response)
         for i in range(len(titles)):
-            yield {'title': titles[i],
-                   'src_url': src_urls[i],
-                   'src': srcs[i],
-                   'score': scores[i],
-                   'author': authors[i],
-                   'age': ages[i] }
+            l.add_value("post_title", titles[i])
+            l.add_value("src_url", src_urls[i])
+            l.add_value("src", srcs[i])
+            l.add_value("score", scores[i])
+            l.add_value("author", authors[i])
+            l.add_value("age", ages[i])
+            yield l.load_item()
 
         for url in src_urls:
             if url != "https://begriffs.com/posts/2022-07-17-debugging-gdb-ddd.html":

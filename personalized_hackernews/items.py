@@ -3,6 +3,7 @@
 # See documentation in:
 # https://docs.scrapy.org/en/latest/topics/items.html
 
+import scrapy
 from scrapy.item import Item, Field
 
 
@@ -11,6 +12,13 @@ class PersonalizedHackernewsItem(scrapy.Item):
     # name = scrapy.Field()
     pass
 
+class HNItem(Item):
+  post_title = Field()
+  src_url = Field()
+  src = Field()
+  score = Field()
+  author = Field()
+  age = Field()
 
 class SiteItem(Item):
   title = Field()

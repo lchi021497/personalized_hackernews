@@ -5,25 +5,50 @@
 
 
 # useful for handling different item types with a single interface
-import json
+from items import SiteItem, HNItem
 from itemadapter import ItemAdapter
 from scrapy.exceptions import DropItem
+from time import time, gmtime, strftime
+import json
+import os
 
-class PersonalizedHackernewsPipeline:
-    def process_item(self, item, spider):
-        if adapter.get("title") == None or adapter.get("href") == None:
-            raise DropItem("missing title or href")
-        else:
-            return item
+def get_time():
+    return strftime("%Y-%m-%d %H:%M", gmtime())
 
-class JsonWriterPipeline:
+class HNPostPipeline:
     def open_spider(self, spider):
-        self.file = open('items.jl', 'w')
+        self.file = open(os.path.join('hnposts', 'hn_{}.jl'.format(get_time())), 'w')
 
     def close_spider(self, spider):
         self.file.close()
 
     def process_item(self, item, spider):
-        line = json.dumps(ItemAdapter(item).asdict()) + "\n"
+        if not isinstance(item, HNItem):
+            return item
+        adapter = ItemAdapter(item)
+        line = json.dumps(adapter.asdict()) + "\n"
         self.file.write(line)
+
         return item
+
+class SitePipeline:
+    def open_spider(self, spider):
+        self.file = open(os.path.join('sites', 'sites_{}.jl'.format(get_time())), 'w')
+
+    def close_spider(self, spider):
+        self.file.close()
+
+
+    def process_item(self, item, spider):
+        # pass item to downstream without doing anything
+        if not isinstance(item, SiteItem):
+            return item
+        adapter = ItemAdapter(item)
+
+        if adapter.get("title") == None or adapter.get("href") == None:
+            raise DropItem("missing title or href")
+        else:
+            line = json.dumps(ItemAdapter(item).asdict()) + "\n"
+            self.file.write(line)
+
+            return item
