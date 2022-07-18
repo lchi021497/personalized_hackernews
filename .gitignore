@@ -1,2 +1,5 @@
+*/logfile
 *.jl
 personalized_hackernews/venv/*
+personalized_hackernews/hnposts/*
+personalized_hackernews/sites/*
