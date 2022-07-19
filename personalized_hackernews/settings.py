@@ -12,10 +12,12 @@ BOT_NAME = 'personalized_hackernews'
 SPIDER_MODULES = ['personalized_hackernews.spiders']
 NEWSPIDER_MODULE = 'personalized_hackernews.spiders'
 ITEM_PIPELINES = {
-    'personalized_hackernews.pipelines.HNPostPipeline': 300,
-    'personalized_hackernews.pipelines.SitePipeline': 800,
+    'personalized_hackernews.pipelines.MongoPostPipeline': 300,
+    'personalized_hackernews.pipelines.MongoSitePipeline': 800,
 }
 
+MONGO_URI = 'mongodb://127.0.0.1:27017'
+MONGO_DATABASE = 'hndb'
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'personalized_hackernews (+http://www.yourdomain.com)'
 

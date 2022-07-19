@@ -1,7 +1,8 @@
-import scrapy
 from scrapy.loader import ItemLoader
+from scrapy.selector import Selector
 from time import strftime, gmtime
 from items import SiteItem, HNItem
+import scrapy
 
 class HNEntry:
     def __init__(self, title, src_url, src, score, author, age):
@@ -35,7 +36,6 @@ class HNSpider(scrapy.Spider):
             self.logger.error("[HNSpider ERROR] length of {} ({}) do not match length of title list({})".format(list_name, len(mylist), expected_len))
 
     def parse(self, response):
-        print("SETTINGS: ", dict(self.settings["ITEM_PIPELINES"]))
         entries = response.css("td")
         titles = entries.css(".title a::text").getall()
         src_urls = entries.css(".title a.titlelink::attr(href)").getall()
@@ -84,8 +84,8 @@ class HNSpider(scrapy.Spider):
         self.check_list_len("authors", authors, list_len)
         self.check_list_len("ages", ages, list_len)
 
-        l = ItemLoader(item=HNItem(), response=response)
         for i in range(len(titles)):
+            l = ItemLoader(item=HNItem(), selector=Selector(response=response))
             l.add_value("post_title", titles[i])
             l.add_value("src_url", src_urls[i])
             l.add_value("src", srcs[i])
@@ -107,7 +107,7 @@ class HNSpider(scrapy.Spider):
         l.add_css("paragraphs", "p::text")
         l.add_xpath("paragraphs", '//div[@class="body"]')
         l.add_value("href", response.url)
-        l.add_css("relevantHrefs", "body a::text")
+        l.add_css("relevantHrefs", "body a::attr(href)")
         l.add_css("date", "time::text")
         l.add_value("parsedDate", strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime()))
         
