@@ -9,9 +9,12 @@ from items import SiteItem, HNItem
 from itemadapter import ItemAdapter
 from scrapy.exceptions import DropItem
 from time import time, gmtime, strftime
+import datetime
 import json
 import os
 import pymongo
+
+PIPELINE_DEBUG = True
 
 def get_time():
     return strftime("%Y-%m-%d %H:%M", gmtime())
@@ -94,10 +97,22 @@ class MongoPostPipeline(MongoPipeline):
         super(MongoPostPipeline, self).__init__(mongo_uri, mongo_db)
 
     def process_item(self, item, spider):
+        spider.logger.debug("HERE")
+
         if not isinstance(item, HNItem):
             return item
 
-        self.db[self.collection_name].insert_one(ItemAdapter(item).asdict())
+        # insert if does not exist
+        now = strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime())
+        result = self.db[self.collection_name].update_one(
+            {'src_url': item['src_url']},
+            {'$set' : {
+                #'last_update_date': now,
+                **ItemAdapter(item).asdict()      
+            }}
+        , upsert=True)
+        if result.matched_count and PIPELINE_DEBUG:
+            spider.logger.debug('[PIPELINE_DEBUG] updating {}'.format(item['src_url']))
         return item
 
 class MongoSitePipeline(MongoPipeline):
@@ -106,6 +121,8 @@ class MongoSitePipeline(MongoPipeline):
         super(MongoSitePipeline, self).__init__(mongo_uri, mongo_db)
 
     def process_item(self, item, spider):
+        spider.logger.debug("THERE")
+
         # pass item to downstream without doing anything
         if not isinstance(item, SiteItem):
             return item
@@ -114,7 +131,15 @@ class MongoSitePipeline(MongoPipeline):
         if adapter.get("title") == None or adapter.get("href") == None:
             raise DropItem("missing title or href")
         else:
-            self.db[self.collection_name].insert_one(ItemAdapter(item).asdict())
+            now = strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime())
+
+            self.db[self.collection_name].update_one(
+                        {'href': item['href']},
+                        {'$set' : {
+                            #'last_update_date': now,
+                            **ItemAdapter(item).asdict()
+                        }}
+                    , upsert=True)
 
             return item
 

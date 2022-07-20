@@ -11,9 +11,11 @@ MONGO_DATABASE = 'hndb'
 client = MongoClient(MONGO_URI)
 db = client[MONGO_DATABASE]
 
-documents = db['mongo_sites'].find({})
+sites = db['mongo_sites'].find({})
+posts = db['mongo_hnposts'].find({})
 
-a = list(documents)
+a = list(sites)
+b = list(posts)
 inst = a[-2]
 
 paragraphs = ''.join(inst['paragraphs'])

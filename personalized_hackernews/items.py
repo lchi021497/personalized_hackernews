@@ -19,6 +19,8 @@ class HNItem(Item):
   score = Field()
   author = Field()
   age = Field()
+  last_update_time = Field(serializer=str)
+  insertion_time = Field(serializer=str)
 
 class SiteItem(Item):
   title = Field()
@@ -27,7 +29,8 @@ class SiteItem(Item):
   href = Field()
   relevantHrefs = Field()
   date = Field()
-  parsedDate = Field(serializer=str)
+  last_update_time = Field(serializer=str)
+  insertion_time = Field(serializer=str)
 
 
 class Blog(SiteItem):
