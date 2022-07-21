@@ -91,13 +91,14 @@ class MongoPipeline:
 
 
 class MongoPostPipeline(MongoPipeline):
-    collection_name = 'mongo_hnposts'
-
     def __init__(self, mongo_uri, mongo_db):
+        self.collection_name = os.environ.get("POST_DB_NAME")
         super(MongoPostPipeline, self).__init__(mongo_uri, mongo_db)
 
     def process_item(self, item, spider):
-        spider.logger.debug("HERE")
+        if (self.collection_name is None):
+            spider.logger.error('[PIPELINE_ERROR] collection name does not exist!')
+            return item
 
         if not isinstance(item, HNItem):
             return item
@@ -116,12 +117,14 @@ class MongoPostPipeline(MongoPipeline):
         return item
 
 class MongoSitePipeline(MongoPipeline):
-    collection_name = 'mongo_sites'
     def __init__(self, mongo_uri, mongo_db):
+        self.collection_name = os.environ.get("SITE_DB_NAME")
         super(MongoSitePipeline, self).__init__(mongo_uri, mongo_db)
 
     def process_item(self, item, spider):
-        spider.logger.debug("THERE")
+        if (self.collection_name is None):
+            spider.logger.error('[PIPELINE_ERROR] collection name does not exist!')
+            return item
 
         # pass item to downstream without doing anything
         if not isinstance(item, SiteItem):

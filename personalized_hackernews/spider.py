@@ -84,7 +84,7 @@ class HNSpider(scrapy.Spider):
         self.check_list_len("authors", authors, list_len)
         self.check_list_len("ages", ages, list_len)
 
-        now = strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime())
+        now = strftime("%Y %b %d %H:%M:%S +0000", gmtime())
         for i in range(len(titles)):
             l = ItemLoader(item=HNItem(), selector=Selector(response=response))
             l.add_value("post_title", titles[i])
@@ -102,7 +102,7 @@ class HNSpider(scrapy.Spider):
                 yield response.follow(url, self.parse_site)
 
     def parse_site(self, response):
-        now = strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime())
+        now = strftime("%Y %b %d %H:%M:%S +0000", gmtime())
         l = ItemLoader(item=SiteItem(), response=response)
         l.add_css("title", "title::text")
         l.add_css("title", "h1::text")
