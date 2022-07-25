@@ -1,6 +1,7 @@
 #!/bin/bash
 
+source venv/bin/activate
 export POST_DB_NAME="mongo_hnposts_1"
-export ITE_DB_NAME="mongo_sites_1"
+export SITE_DB_NAME="mongo_sites_1"
 
-source venv/bin/activate && scrapy runspider spider.py --logfile=logfile
+scrapy runspider spider.py --logfile=logfile
