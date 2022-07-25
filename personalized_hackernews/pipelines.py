@@ -97,7 +97,7 @@ class MongoPostPipeline(MongoPipeline):
 
     def process_item(self, item, spider):
         if (self.collection_name is None):
-            spider.logger.error('[PIPELINE_ERROR] collection name does not exist!')
+            spider.logger.error('[PIPELINE_ERROR] collection name for post pipeline does not exist!')
             return item
 
         if not isinstance(item, HNItem):
@@ -123,7 +123,7 @@ class MongoSitePipeline(MongoPipeline):
 
     def process_item(self, item, spider):
         if (self.collection_name is None):
-            spider.logger.error('[PIPELINE_ERROR] collection name does not exist!')
+            spider.logger.error('[PIPELINE_ERROR] collection name for site pipeline does not exist!')
             return item
 
         # pass item to downstream without doing anything
