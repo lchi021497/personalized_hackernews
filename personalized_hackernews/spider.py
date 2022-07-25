@@ -2,7 +2,13 @@ from scrapy.loader import ItemLoader
 from scrapy.selector import Selector
 from time import strftime, gmtime
 from items import SiteItem, HNItem
+from urllib.parse import urlparse
+import os
 import scrapy
+
+
+# parse first ten pages of HN
+PAGE_DEPTH_LIMIT = 10
 
 class HNEntry:
     def __init__(self, title, src_url, src, score, author, age):
@@ -30,7 +36,8 @@ class HNSpider(scrapy.Spider):
     ]
 
     LOG_FILE = "logfile"
- 
+    page_depth = 0
+
     def check_list_len(self, list_name, mylist, expected_len):
         if (len(mylist) != expected_len):
             self.logger.error("[HNSpider ERROR] length of {} ({}) do not match length of title list({})".format(list_name, len(mylist), expected_len))
@@ -100,6 +107,13 @@ class HNSpider(scrapy.Spider):
         for url in src_urls:
             if url != "https://begriffs.com/posts/2022-07-17-debugging-gdb-ddd.html":
                 yield response.follow(url, self.parse_site)
+
+        if self.page_depth < PAGE_DEPTH_LIMIT:
+            self.page_depth += 1
+            next_page_path = response.css(".morelink::attr(href)").get() 
+           
+            self.logger.debug("[SPIDER_DEBUG] following more link ({})".format(next_page_path))
+            yield response.follow(os.path.join(self.start_urls[0], next_page_path), self.parse)
 
     def parse_site(self, response):
         now = strftime("%Y %b %d %H:%M:%S +0000", gmtime())
