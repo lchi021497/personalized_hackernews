@@ -8,7 +8,6 @@ Types of Sites
 6.  news sites
 7.  demo websites (redirect to Google search?)
 8.  forum questions
-9. 
 
 Things to Parse
 --------------
@@ -29,3 +28,12 @@ Things to Parse
 | site1 |
  \     /
   -----
+
+TODO:
+1. get post date by the 'ago' field and time parsed
+2. only parse links that are "relevant"
+3. sanity checks
+4. tf-idf clustering on sites
+5. track duplicates
+6. add timing of update collections
+7. handle site hanging or 404
