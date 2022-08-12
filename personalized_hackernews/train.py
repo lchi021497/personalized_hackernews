@@ -5,6 +5,9 @@ from multiprocessing import Process
 from pymongo import MongoClient
 import os
 import string
+import tqdm
+
+DEBUG = False
 
 class TrainPipeline:
   def __init__(self):
@@ -41,8 +44,10 @@ class TrainPipeline:
     return wl_tokens
 
   def transform(self, doc):
-    title_outputs = self.transform_titles(doc['title'], doc['subtitles'])
-    pgraph_outputs = self.transform_paragraphs(doc['paragraphs'])
+    if DEBUG:
+      print(doc.keys())
+    title_outputs = self.transform_titles(doc['title'], doc.get('subtitles', []))
+    pgraph_outputs = self.transform_paragraphs(doc.get('paragraphs', []))
 
     return (title_outputs, pgraph_outputs)
 
@@ -98,8 +103,11 @@ if __name__ == '__main__':
   collection = db['mongo_sites_1']
   docs = list(collection.find({}))
 
-  title_data, pgraph_data = pipeline.transform(docs[0])
-  wc_processor = WordCountLimitProcessor(5)
+  titles = []
+  for doc in tqdm.tqdm(docs):
+    title_data, pgraph_data = pipeline.transform(doc)
+    titles.append(title_data)
+  # wc_processor = WordCountLimitProcessor(5)
 
-  pipeline.register_postprocessor(wc_processor, 5)
-  pgraph_data = pipeline.run_postprocessors(pgraph_data)
+  # pipeline.register_postprocessor(wc_processor, 5)
+  # pgraph_data = pipeline.run_postprocessors(pgraph_data)
