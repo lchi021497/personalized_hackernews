@@ -3,3 +3,7 @@
 personalized_hackernews/venv/*
 personalized_hackernews/hnposts/*
 personalized_hackernews/sites/*
+personalized_hackernews/word2vec-google-news-300.model
+personalized_hackernews/word2vec-google-news-300.model.vectors.npy
+personalized_hackernews/.*
+__pycache__/
