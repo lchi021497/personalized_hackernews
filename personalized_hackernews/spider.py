@@ -1,11 +1,11 @@
+import os
+from time import gmtime, strftime
+from urllib.parse import urlparse
+
+import scrapy
+from items import HNItem, SiteItem
 from scrapy.loader import ItemLoader
 from scrapy.selector import Selector
-from time import strftime, gmtime
-from items import SiteItem, HNItem
-from urllib.parse import urlparse
-import os
-import scrapy
-
 
 # parse first ten pages of HN
 PAGE_DEPTH_LIMIT = 10

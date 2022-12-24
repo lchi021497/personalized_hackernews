@@ -4,15 +4,16 @@
 # See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 
 
-# useful for handling different item types with a single interface
-from items import SiteItem, HNItem
-from itemadapter import ItemAdapter
-from scrapy.exceptions import DropItem
-from time import time, gmtime, strftime
 import datetime
 import json
 import os
+from time import gmtime, strftime, time
+
 import pymongo
+from itemadapter import ItemAdapter
+# useful for handling different item types with a single interface
+from items import HNItem, SiteItem
+from scrapy.exceptions import DropItem
 
 PIPELINE_DEBUG = True
 

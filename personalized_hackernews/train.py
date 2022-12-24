@@ -1,11 +1,13 @@
 import nltk
+
 nltk.download('stopwords')
-from nltk.corpus import stopwords
-from multiprocessing import Process
-from pymongo import MongoClient
 import os
 import string
+from multiprocessing import Process
+
 import tqdm
+from nltk.corpus import stopwords
+from pymongo import MongoClient
 
 DEBUG = False
 

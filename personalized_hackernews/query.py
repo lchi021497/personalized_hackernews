@@ -1,9 +1,11 @@
 import nltk
+
 nltk.download('stopwords')
-from nltk.corpus import stopwords
-from pymongo import MongoClient
 import json
 import string
+
+from nltk.corpus import stopwords
+from pymongo import MongoClient
 
 MONGO_URI = 'mongodb://127.0.0.1:27017'
 MONGO_DATABASE = 'hndb'

@@ -4,7 +4,7 @@
 # https://docs.scrapy.org/en/latest/topics/items.html
 
 import scrapy
-from scrapy.item import Item, Field
+from scrapy.item import Field, Item
 
 
 class PersonalizedHackernewsItem(scrapy.Item):
