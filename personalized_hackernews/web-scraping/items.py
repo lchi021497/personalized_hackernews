@@ -1,0 +1,57 @@
+# Define here the models for your scraped items
+#
+# See documentation in:
+# https://docs.scrapy.org/en/latest/topics/items.html
+
+import scrapy
+from scrapy.item import Field, Item
+
+
+class PersonalizedHackernewsItem(scrapy.Item):
+    # define the fields for your item here like:
+    # name = scrapy.Field()
+    pass
+
+class HNItem(Item):
+  post_title = Field()
+  src_url = Field()
+  src = Field()
+  score = Field()
+  author = Field()
+  age = Field()
+  last_update_time = Field(serializer=str)
+  insertion_time = Field(serializer=str)
+
+class SiteItem(Item):
+  title = Field()
+  subtitles = Field()
+  paragraphs = Field() 
+  href = Field()
+  relevantHrefs = Field()
+  date = Field()
+  last_update_time = Field(serializer=str)
+  insertion_time = Field(serializer=str)
+
+
+class Blog(SiteItem):
+  author = Field()
+  blogHome = Field()
+  tableHrefs = Field()
+  tags = Field()
+
+class GitHubRepo(SiteItem):
+  about = Field()
+  readme = Field()
+  numStars = Field()
+  numForks = Field()
+  tags = Field()
+  repoGroup = Field()
+  contributers = Field()
+  languages = Field()
+
+class Arxiv(SiteItem):
+  pdfHred = Field()
+  authors = Field()
+
+class pdfItem(Item):
+  pdfHref = Field()
