@@ -1,102 +1,150 @@
+from nltk.corpus import stopwords
+from pymongo import MongoClient
 import nltk
-
 nltk.download('stopwords')
 import os
 import string
-from multiprocessing import Process
-
 import tqdm
-from nltk.corpus import stopwords
-from pymongo import MongoClient
+import logging
 
 DEBUG = False
 
 class TrainPipeline:
-  def __init__(self):
-    punctuations = string.punctuation+'—”\'\’'
+    def __init__(self):
+        self.postprocessors = []
 
-    self.stopws = set(stopwords.words('english'))
-    self.translator = str.maketrans(punctuations, ' '*len(punctuations))
-    self.postprocessors = []
+    def transform(self, data):
+        for pp in self.postprocessors:
+            processor, _ = pp
+            data = processor.transform(data)
+        return data
 
-  def split(self, wordLists, split_way='sentence'):
-    assert split_way == 'word' or split_way == 'sentence' or split_way == 'paragraph'
+    def register_postprocessor(self, postprocessor, order):
+        if not self.postprocessors:
+            self.postprocessors = [(postprocessor, order)]
+        else:
+            # insert postprocessors according to order
+            insert_idx = 0
+            while insert_idx < len(self.postprocessors) and order > self.postprocessors[insert_idx][1]:
+                insert_idx += 1
 
-    if split_way == 'paragraph':
-      return 
+            self.postprocessors.insert(insert_idx, (postprocessor, order))
 
-    splits = []
+class PostProcessor(object):
+    def __init__(self, name, *args, **kwargs):
+        self.name = name
 
-    if split_way == 'sentence':
-      delimiter = '.'
-      for wl in wordLists:
-        splits.append(wl.split(delimiter))
-    else:
-      delimiter = ' '
-      for wl in wordLists:
-        splits += wl.split(delimiter)
-    return splits 
+    def transform(self, inputs):
+        # input is list of words/sentences
+        # output modified list
+        pass
 
-  def elim_stopwords(self, wordLists):
-    wl_tokens = []
-    for wl in wordLists:
-      filtered_wl = wl.translate(self.translator).split()
-      tokens = [token.lower() for token in filtered_wl if token.lower() not in self.stopws]
-      wl_tokens += tokens
-    return wl_tokens
+    def log(self, msg):
+        print('[{}] {}'.format(self.name.upper(), msg))
 
-  def transform(self, doc):
-    if DEBUG:
-      print(doc.keys())
-    title_outputs = self.transform_titles(doc['title'], doc.get('subtitles', []))
-    pgraph_outputs = self.transform_paragraphs(doc.get('paragraphs', []))
-
-    return (title_outputs, pgraph_outputs)
-
-  def transform_titles(self, title, subtitles):
-    if not isinstance(title, list):
-      title = [title]
-
-    titles = title + subtitles
-    keywords = self.split(titles, split_way='word')
-    return self.elim_stopwords(keywords)
-
-  def transform_paragraphs(self, paragraphs):
-    sentences = self.split(paragraphs, split_way='sentence')
-    sentences = [self.elim_stopwords(s) for s in sentences]
-    return sentences 
-
-  def register_postprocessor(self, postprocessor, order):
-    if not self.postprocessors:
-      self.postprocessors = [(postprocessor, order)]
-    else:
-      insert_idx = 0
-      while order > self.posprocessors[i]:
-        insert_idx += 1
-
-      self.postprocessors.insert(insert_idx, (postprocessor, order))
-   
-  def run_postprocessors(self, data):
-    for pp in self.postprocessors:
-      processor, _ = pp
-      data = processor.transform(data)
-    return data
-
-class PostProcessors:
-  def __init__(*args, **kwargs):
-    raise AssertionError('Base class for post processors, not to be instantiated')
-
-  def transform(self, inputs):
-    # input is list of words/sentences
-    # output modified list
+# Processors: these could be simple functions, if processing function is stateless, too
+class AbortException(Exception):
     pass
 
-class WordCountLimitProcessor:
-  def __init__(self, word_count_lb):
-    self.word_count_lb = word_count_lb
+class StripProcessor(PostProcessor):
+    def __init__(self, name):
+        PostProcessor.__init__(self, name)
+    
+    def transform(self, doc):
+        doc = [_doc.strip() for _doc in doc]
+        return doc
+        
+class SkipProcessor(PostProcessor):
+    def __init__(self, name, skip_criteria):
+        PostProcessor.__init__(self, name)
+        self.skip_criteria = skip_criteria
 
-  def transform(self, sentences):
-    return [sentence for sentence in sentences if len(sentence) > self.word_count_lb]
+    def transform(self, doc):
+        if self.skip_criteria(doc):
+            raise AbortException
+        self.log(doc)
+        return doc
+    
+class SplitProcessor(PostProcessor):
+    def __init__(self, name, split_type='sentence'):
+        PostProcessor.__init__(self, name)
+        self.split_way = split_type
+
+    def transform(self, words_lists):
+        # Params:
+        #   wordLists: list of words, could be sentence or paragraphs.
+        #   split_way: word, sentence, or paragraphs
+        assert self.split_way in ['word', 'sentence', 'paragraph']
+
+        if self.split_way == 'paragraph':
+            # split by sentence
+            raise NotImplemented('paragraph splitting not implemented yet.') 
+
+        splits = []
+
+        print('words_list: ', words_lists)
+        if self.split_way == 'sentence':
+            # split by sentence
+            delimiter = '.'
+            for wl in words_lists:
+                splits += wl.split(delimiter)
+        else:
+            # split by word
+            delimiter = ' '
+            for wl in words_lists:
+                splits += wl.split(delimiter)
+
+        self.log(splits)
+        return splits
+
+class StopWordProcessor(PostProcessor):
+    def __init__(self, name, lang='english'):
+        PostProcessor.__init__(self, name)
+        punctuations = string.punctuation+'—”\'\’'
+
+        # get english stopwords
+        self.stopws = set(stopwords.words(lang))
+        # replace punctuations with whitespaces
+        self.translator = str.maketrans(punctuations, ' '*len(punctuations))
+    
+    def transform(self, words_lists):
+        # Params:
+        #   wordLists: list of words, could be sentence or paragraphs.
+        tokens_lists = []
+        for wl in words_lists:
+            # get rid of punctuations
+            filtered_wl = wl.translate(self.translator).split()
+            # get rid of stop words
+            tokens = [token.lower() for token in filtered_wl if token.lower() not in self.stopws]
+            tokens_lists += tokens
+        
+        self.log(tokens_lists)
+        return tokens_lists
+
+class WordCountLimitProcessor(PostProcessor):
+    def __init__(self, name, word_count_lb):
+        PostProcessor.__init__(self, name)
+        self.word_count_lb = word_count_lb
+
+    def transform(self, sentences):
+        return [sentence for sentence in sentences if len(sentence) > self.word_count_lb]
+
+# two training pipelines
+# 1. titles
+# 2. paragraphs
+title_pipeline = TrainPipeline()
+title_pipeline.register_postprocessor(SkipProcessor('title_skip_processor', lambda x: any(map(lambda y: 'Are you a robot' in y, x))), 0)
+title_pipeline.register_postprocessor(StripProcessor('title_strip_processor'), 20)
+title_pipeline.register_postprocessor(SplitProcessor('title_split_processor', split_type='word'), 30)
+title_pipeline.register_postprocessor(StopWordProcessor('title_stop_processor'), 40)
+title_pipeline.register_postprocessor(WordCountLimitProcessor('title_word_limit_processor', 3), 50)
+
+pgraph_pipeline = TrainPipeline()
+pgraph_pipeline.register_postprocessor(StripProcessor('pgraph_stip_processor'), 0)
+pgraph_pipeline.register_postprocessor(SplitProcessor('pgraph_split_processor', split_type='sentence'), 10)
+pgraph_pipeline.register_postprocessor(StopWordProcessor('pgraph_stop_processor'), 20)
+pgraph_pipeline.register_postprocessor(WordCountLimitProcessor('pgraph_word_limit_processor', 3), 40)
+
 
 if __name__ == '__main__':
   pipeline = TrainPipeline()
@@ -105,11 +153,20 @@ if __name__ == '__main__':
   collection = db['mongo_sites_1']
   docs = list(collection.find({}))
 
-  titles = []
+  X = []
   for doc in tqdm.tqdm(docs):
-    title_data, pgraph_data = pipeline.transform(doc)
-    titles.append(title_data)
-  # wc_processor = WordCountLimitProcessor(5)
-
-  # pipeline.register_postprocessor(wc_processor, 5)
-  # pgraph_data = pipeline.run_postprocessors(pgraph_data)
+    title = doc['title']
+    if type(title) is not list:
+        title = [title] # make title to list to concatenate with subtitles
+    subtitles = doc.get('subtitles', [])
+    titles = title + subtitles
+    
+    try:
+        print('raw titles: ', titles)
+        title_data = title_pipeline.transform(titles)
+        pgraph_data = pgraph_pipeline.transform(doc.get('paragraphs', []))
+    
+        doc_data = title_data + pgraph_data
+        X.append(doc_data)
+    except AbortException:
+        pass
