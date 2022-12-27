@@ -9,11 +9,11 @@
 
 BOT_NAME = 'personalized_hackernews'
 
-SPIDER_MODULES = ['personalized_hackernews.spiders']
-NEWSPIDER_MODULE = 'personalized_hackernews.spiders'
+SPIDER_MODULES = ['personalized_hackernews.scraping.spiders']
+NEWSPIDER_MODULE = 'personalized_hackernews.scraping.spiders'
 ITEM_PIPELINES = {
-    'personalized_hackernews.pipelines.MongoPostPipeline': 300,
-    'personalized_hackernews.pipelines.MongoSitePipeline': 800,
+    'personalized_hackernews.scraping.pipelines.MongoPostPipeline': 300,
+    'personalized_hackernews.scraping.pipelines.MongoSitePipeline': 800,
 }
 
 MONGO_URI = 'mongodb://127.0.0.1:27017'

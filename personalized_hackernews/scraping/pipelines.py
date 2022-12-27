@@ -10,7 +10,7 @@ from time import gmtime, strftime
 import pymongo
 from itemadapter import ItemAdapter
 # useful for handling different item types with a single interface
-from items import HNItem, SiteItem
+from scraping.items import HNItem, SiteItem
 from scrapy.exceptions import DropItem
 
 PIPELINE_DEBUG = True
