@@ -2,14 +2,12 @@ from nltk.corpus import stopwords
 from pymongo import MongoClient
 import nltk
 nltk.download('stopwords')
-import os
 import string
 import tqdm
-import logging
 
 DEBUG = False
 
-class TrainPipeline:
+class DataPipeline:
     def __init__(self):
         self.postprocessors = []
 
@@ -127,46 +125,49 @@ class WordCountLimitProcessor(PostProcessor):
         self.word_count_lb = word_count_lb
 
     def transform(self, sentences):
-        return [sentence for sentence in sentences if len(sentence) > self.word_count_lb]
+        return [sentence for sentence in sentences if len(sentence.split(' ')) > self.word_count_lb]
 
-# two training pipelines
-# 1. titles
-# 2. paragraphs
-title_pipeline = TrainPipeline()
+title_pipeline = DataPipeline()
 title_pipeline.register_postprocessor(SkipProcessor('title_skip_processor', lambda x: any(map(lambda y: 'Are you a robot' in y, x))), 0)
 title_pipeline.register_postprocessor(StripProcessor('title_strip_processor'), 20)
-title_pipeline.register_postprocessor(SplitProcessor('title_split_processor', split_type='word'), 30)
+title_pipeline.register_postprocessor(SplitProcessor('title_split_processor', split_type='sentence'), 30)
 title_pipeline.register_postprocessor(StopWordProcessor('title_stop_processor'), 40)
-title_pipeline.register_postprocessor(WordCountLimitProcessor('title_word_limit_processor', 3), 50)
+# title_pipeline.register_postprocessor(WordCountLimitProcessor('title_word_limit_processor', 3), 50)
 
-pgraph_pipeline = TrainPipeline()
-pgraph_pipeline.register_postprocessor(StripProcessor('pgraph_stip_processor'), 0)
+pgraph_pipeline = DataPipeline()
+pgraph_pipeline.register_postprocessor(StripProcessor('pgraph_strip_processor'), 0)
 pgraph_pipeline.register_postprocessor(SplitProcessor('pgraph_split_processor', split_type='sentence'), 10)
 pgraph_pipeline.register_postprocessor(StopWordProcessor('pgraph_stop_processor'), 20)
-pgraph_pipeline.register_postprocessor(WordCountLimitProcessor('pgraph_word_limit_processor', 3), 40)
-
+# pgraph_pipeline.register_postprocessor(WordCountLimitProcessor('pgraph_word_limit_processor', 10), 40)
 
 if __name__ == '__main__':
-  pipeline = TrainPipeline()
-  client = MongoClient("localhost", 27017, maxPoolSize=50)
-  db = client.hndb
-  collection = db['mongo_sites_1']
-  docs = list(collection.find({}))
+    # two training pipelines
+    # 1. titles
+    # 2. paragraphs
 
-  X = []
-  for doc in tqdm.tqdm(docs):
-    title = doc['title']
-    if type(title) is not list:
-        title = [title] # make title to list to concatenate with subtitles
-    subtitles = doc.get('subtitles', [])
-    titles = title + subtitles
-    
-    try:
-        print('raw titles: ', titles)
-        title_data = title_pipeline.transform(titles)
-        pgraph_data = pgraph_pipeline.transform(doc.get('paragraphs', []))
-    
-        doc_data = title_data + pgraph_data
-        X.append(doc_data)
-    except AbortException:
-        pass
+
+    client = MongoClient("localhost", 27017, maxPoolSize=50)
+    db = client.hndb
+    collection = db['mongo_sites_1']
+    docs = list(collection.find().sort('_id', 1))
+
+    X = []
+    to_keep = []
+    for i, doc in tqdm.tqdm(enumerate(docs)):
+        titles = doc['title']
+        if type(title) is not list:
+            titles = [titles] # make title to list to concatenate with subtitles
+        #     subtitles = doc.get('subtitles', [])
+        #     titles = title + subtitles
+
+        try:
+            print('raw titles: ', titles)
+            title_data = title_pipeline.transform(titles)
+            pgraph_data = pgraph_pipeline.transform(doc.get('paragraphs', []))
+
+            doc_data = title_data + pgraph_data
+            X.append(doc_data)
+            to_keep.append(i)
+        except AbortException:
+            pass
+    docs = [docs[i] for i in to_keep]
