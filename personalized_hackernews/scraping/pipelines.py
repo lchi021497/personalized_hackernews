@@ -20,7 +20,7 @@ def get_time():
 
 class JLPipeline:
     def open_spider(self, spider, jl_dir, jl_name):
-        self.file = open(os.path.join(jl_dir, jl_name), 'w')
+        self.file = open(os.path.join(jl_dir, jl_name), 'w+')
 
     def close_spider(self, spider):
         self.file.close()
@@ -49,10 +49,10 @@ class JLSitePipeline(JLPipeline):
         super(JLSitePipeline, self).__init__()
 
     def open_spider(self, spider):
-        open_spider(spider, 'sites', 'sites_{}.jl'.format(get_time()))
+        super().open_spider(spider, 'hnsites', 'sites_{}.jl'.format(get_time()))
 
     def process_item(self, item, spider):
-        # pass item to downstream without doing anything
+         # pass item to downstream without doing anything
         if not isinstance(item, SiteItem):
             return item
         adapter = ItemAdapter(item)
@@ -102,6 +102,7 @@ class MongoPostPipeline(MongoPipeline):
         if not isinstance(item, HNItem):
             return item
 
+        print('PROCESS ITEMS')
         # insert if does not exist
         now = strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime())
         result = self.db[self.collection_name].update_one(
