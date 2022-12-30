@@ -11,29 +11,26 @@ Types of Sites
 
 Things to Parse
 --------------
-1. text
-2. title
+1. paragraphs
+2. title, subtitles
 3. hierarchical links
 4. tables (ignore for now)
 5. images (ignore for now)
 
-          -------- _____
-                  /     \
-                 | site1 |
-                  \_____/ 
-                  
-        /
-  _____/
- /     \
-| site1 |
- \     /
-  -----
+Data Pipeline
+--------------
+1. HNposts
+2. Sites that HNposts direct to
+3. Scrapy spider parses site
+4. Raw html data passes through data pipeline
+5. Processors in data pipeline transforms data
+6. Processed data is stored in Mongo DB
 
-TODO:
-1. get post date by the 'ago' field and time parsed
-2. only parse links that are "relevant"
-3. sanity checks
-4. tf-idf clustering on sites
-5. track duplicates
-6. add timing of update collections
-7. handle site hanging or 404
+Training Pipeline
+--------------
+1. Load data form Mongo DB
+2. Train Doc2Vec unsupervised model to find-tune embedding weights for document classification
+3. Use trained Doc2Vec to generate document embeddings to use as features for Kmeans unsupervised classification
+4. Identify cluster in Kmeans, allowing users to query against these clusters to find potential documents of interest.
+
+
