@@ -1,58 +1,106 @@
-import os
-from time import gmtime, strftime
-from urllib.parse import urlparse
-
 from bs4 import BeautifulSoup
-import scrapy
+from pymongo import MongoClient
 from scraping.items import HNItem, SiteItem
 from scrapy.loader import ItemLoader
 from scrapy.selector import Selector
 from scraping.scrape import parse_paragraphs
+from scrapy.utils.log import configure_logging
+from time import gmtime, strftime
+from urllib.parse import urlparse
+from tqdm import tqdm
+
+import os
 import logging
-from scrapy.utils.log import configure_logging 
+import scrapy
+import requests
 
 # parse first ten pages of HN
 configs = {
-    'PAGE_DEPTH_LIMIT': 10, # number of pages to crawl on hackernews
-    'UPVOTE_THRESHOLD': 20, # number of upvotes
-    'PGRAPH_LEN_THRES': 30,
-    'PGRAPH_ROLLING_WINDOW': 5,
-    'EXCLUDE_SITE_SUFFIXES': ['.pdf', 'robots.txt'],
-    'LOGFILE_NAME': 'logfile',
+    "PAGE_DEPTH_LIMIT": 10,  # number of pages to crawl on hackernews
+    "UPVOTE_THRESHOLD": 20,  # number of upvotes
+    "PGRAPH_LEN_THRES": 30,
+    "PGRAPH_ROLLING_WINDOW": 5,
+    "EXCLUDE_SITE_SUFFIXES": [".pdf", "robots.txt"],
+    "LOGFILE_NAME": "logfile",
 }
 
 
 class HNSpider(scrapy.Spider):
-    '''
-       Spider that scrapes the hacker news page.
-       Scrapes the title, source_url(to crawl), src domain``
-       score, author, age of each page.
-       
-       Send Requests of the urls crawled to the scheduler
-       that triggers other specific spiders (blog spider,
-       forum spider, or news spider) to crawl different
-       types of news sources.
-    '''
-    name = 'hn_spider'
-    start_urls = [
-        'https://news.ycombinator.com/',
-    ]
+    """
+    Spider that scrapes the hacker news page.
+    Scrapes the title, source_url(to crawl), src domain``
+    score, author, age of each page.
 
-    LOG_FILE = configs['LOGFILE_NAME']
+    Send Requests of the urls crawled to the scheduler
+    that triggers other specific spiders (blog spider,
+    forum spider, or news spider) to crawl different
+    types of news sources.
+    """
+
+    name = "hn_spider"
+
+    LOG_FILE = configs["LOGFILE_NAME"]
+    start_urls = ["https://news.ycombinator.com/"]
     page_depth = 0
 
     configure_logging(install_root_handler=False)
     logging.basicConfig(
         filename=LOG_FILE,
-        format='%(levelname)s: %(message)s',
-        level=logging.INFO
+        format="%(levelname)s: %(message)s",
+        level=logging.INFO,
     )
 
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        spider = super(HNSpider, cls).from_crawler(crawler, *args, **kwargs)
+
+        spider.crawler = crawler
+        return spider
+
+    def __init__(self, run_mode="crawl", *args, **kwargs):
+        assert run_mode in ["crawl", "migrate"]
+        self.run_mode = run_mode
+        print("running spider in {} mode".format(self.run_mode))
+        super(HNSpider, self).__init__(*args, **kwargs)
+
     def check_list_len(self, list_name, mylist, expected_len):
-        if (len(mylist) != expected_len):
-            self.logger.error("[HNSpider ERROR] length of {} ({}) do not match length of title list({})".format(list_name, len(mylist), expected_len))
+        if len(mylist) != expected_len:
+            self.logger.error(
+                "[HNSpider ERROR] length of {} ({}) do not match length of title list({})".format(
+                    list_name, len(mylist), expected_len
+                )
+            )
+
+    def migrate(self):
+        client = MongoClient("localhost", 27017, maxPoolSize=50)
+        db = client.hndb
+        collection = db[os.environ.get("POST_DB_NAME")]
+        docs = list(collection.find().sort("_id", 1))
+
+        for doc in tqdm(docs):
+            src_url = doc["src_url"][0]
+            skip = False
+            for exclude in configs["EXCLUDE_SITE_SUFFIXES"]:
+                if exclude in src_url:
+                    skip = True
+            if skip:
+                continue
+            try:
+                response = requests.get(src_url, timeout=10)
+                content_type = response.headers.get("content-type")
+                if "application/pdf" in content_type:
+                    continue
+            except:
+                print("parsing src_url {} failed".format(src_url))
+
+            item = self.parse_site(response)
+            itemproc = self.crawler.engine.scraper.itemproc
+            itemproc.process_item(item, self)
 
     def parse(self, response):
+        if self.run_mode == "migrate":
+            self.migrate()
+            return
         # parse each entry in the table
         entries = response.css("td")
 
@@ -109,30 +157,34 @@ class HNSpider(scrapy.Spider):
             l.add_value("score", scores[i])
             l.add_value("author", authors[i])
             l.add_value("age", ages[i])
-            l.add_value("last_update_time", now) 
+            l.add_value("last_update_time", now)
             l.add_value("insertion_time", now)
             yield l.load_item()
 
         for url in src_urls:
-            print('following url: ', url)
+            print("following url: ", url)
             if url is None:
                 continue
-            for suffix in configs['EXCLUDE_SITE_SUFFIXES']:
+            for suffix in configs["EXCLUDE_SITE_SUFFIXES"]:
                 if url.endswith(suffix):
                     continue
             # TODO: handle hn posts differently
-            if urlparse(url).netloc == 'www.washingtonpost.com':
+            if urlparse(url).netloc == "www.washingtonpost.com":
                 break
 
             yield response.follow(url, self.parse_site)
 
         # parse more on later paginations
-        if self.page_depth < configs['PAGE_DEPTH_LIMIT']:
+        if self.page_depth < configs["PAGE_DEPTH_LIMIT"]:
             self.page_depth += 1
-            next_page_path = response.css(".morelink::attr(href)").get() 
-           
-            self.logger.debug("[SPIDER_DEBUG] following more link ({})".format(next_page_path))
-            yield response.follow(os.path.join(self.start_urls[0], next_page_path), self.parse)
+            next_page_path = response.css(".morelink::attr(href)").get()
+
+            self.logger.debug(
+                "[SPIDER_DEBUG] following more link ({})".format(next_page_path)
+            )
+            yield response.follow(
+                os.path.join(self.start_urls[0], next_page_path), self.parse
+            )
 
     def parse_site(self, response):
         now = strftime("%Y %b %d %H:%M:%S +0000", gmtime())
@@ -141,14 +193,19 @@ class HNSpider(scrapy.Spider):
         l.add_css("title", "h1::text")
         l.add_css("subtitles", "h2::text")
         l.add_css("subtitles", "h3::text")
- 
-        soup = BeautifulSoup(response.text, 'html.parser')
-        pgraphs = soup.find_all('p')
+
+        soup = BeautifulSoup(response.text, "html.parser")
+        pgraphs = soup.find_all("p")
 
         # for github sites, parse list as paragraphs
         domain = urlparse(response.url).netloc
-        list_as_paragraph = (domain.find('github.com') != -1)
-        parsed_paragraphs = parse_paragraphs(pgraphs, configs['PGRAPH_LEN_THRES'], configs['PGRAPH_ROLLING_WINDOW'], list_as_paragraph=list_as_paragraph)
+        list_as_paragraph = domain.find("github.com") != -1
+        parsed_paragraphs = parse_paragraphs(
+            pgraphs,
+            configs["PGRAPH_LEN_THRES"],
+            configs["PGRAPH_ROLLING_WINDOW"],
+            list_as_paragraph=list_as_paragraph,
+        )
 
         l.add_value("paragraphs", parsed_paragraphs)
         l.add_value("href", response.url)
@@ -156,8 +213,6 @@ class HNSpider(scrapy.Spider):
         l.add_css("date", "time::text")
         l.add_value("last_update_time", now)
         l.add_value("insertion_time", now)
-        
+
         # pass to pipeline
         return l.load_item()
-
-
