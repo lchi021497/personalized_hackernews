@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request
 from pymongo import MongoClient
 from gensim.models.doc2vec import Doc2Vec
-from train.train import transform_instance, pgraph_pipeline, title_pipeline
+from train import transform_instance, pgraph_pipeline, title_pipeline
 from collections import Counter
 
 import joblib
@@ -11,9 +11,12 @@ import pickle
 with open("model.pkl", "rb") as f:
     clf2 = pickle.load(f)
 
+MONGO_ADDRESS = '3.85.159.141'
+MONGO_PORT = 80
+
 app = Flask("personalized hackernews", template_folder="templates")
 
-client = MongoClient("localhost", 27017, maxPoolSize=20)
+client = MongoClient(MONGO_ADDRESS, 80, maxPoolSize=20)
 db = client.hndb
 collection = db["filtered_hn_sites"]
 docs = list(collection.find().sort("_id", 1))
@@ -25,7 +28,7 @@ labels = kmeans_model.labels_
 centroids = kmeans_model.cluster_centers_
 
 X_vectors = np.load("X_vectors.npy")
-
+print('ready to serve')
 
 def pick_samples_of_label(
     doc_vecs, labels, of_label, doc_vec, sample=10, top=10

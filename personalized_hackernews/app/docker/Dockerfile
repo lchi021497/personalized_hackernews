@@ -2,5 +2,5 @@ FROM python:3.8.8
 WORKDIR /app
 COPY ./app/ ./
 RUN pip install -r requirements.txt
-EXPOSE 8080
-ENTRYPOINT ./run_app.sh
+EXPOSE 5000
+ENTRYPOINT ["./run_app.sh"]
