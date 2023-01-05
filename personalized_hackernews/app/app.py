@@ -90,7 +90,7 @@ def get_posts():
     relevant_doc = collection.find_one({"_id": relevant_doc_id})
 
     title_data, pgraph_data = transform_instance(
-        relevant_doc, title_pipeline, pgraph_pipeline, DEBUG=True
+        relevant_doc, title_pipeline, pgraph_pipeline 
     )
     word_vec = title_data + pgraph_data
     feature_vec = gensim_model.infer_vector(word_vec).reshape(1, -1)
@@ -107,3 +107,5 @@ def get_posts():
     related_docs = [docs[i] for i in related_docs_idxs]
 
     return (render_template("index.html", table_data=related_docs), 200)
+app.run(host='0.0.0.0', port=5000)
+
