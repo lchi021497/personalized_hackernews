@@ -137,7 +137,7 @@ pgraph_pipeline.register_postprocessor(
     FlattenProcessor("pgraph_flatten_processor"), 60
 )
 pgraph_pipeline.register_postprocessor(
-    WordCountLimitProcessor("pgraph_word_limit_processor", 1000), 70
+        WordCountLimitProcessor("pgraph_word_limit_processor", 1), 70 #let everything pass
 )
 
 
