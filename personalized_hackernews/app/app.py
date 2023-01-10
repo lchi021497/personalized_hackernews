@@ -3,6 +3,7 @@ from pymongo import MongoClient
 from gensim.models.doc2vec import Doc2Vec
 from train.train import transform_instance, pgraph_pipeline, title_pipeline
 from collections import Counter
+from urllib.parse import urlparse
 
 import joblib
 import numpy as np
@@ -61,7 +62,7 @@ def get_posts():
 
     keywords = [word.strip() for word in keywords.split(",")]
     keywords_match = [{"paragraphs": {"$regex": kw}} for kw in keywords]
-    print("keywords_match: ", keywords_match)
+    # print("keywords_match: ", keywords_match)
     relevant_doc = list(
         collection.aggregate(
             [
@@ -72,7 +73,7 @@ def get_posts():
             ]
         )
     )
-    print("relevant doc by search by keyword: ", relevant_doc)
+    # print("relevant doc by search by keyword: ", relevant_doc)
 
     if len(relevant_doc) == 0:
         return (
@@ -87,7 +88,7 @@ def get_posts():
     relevant_doc = collection.find_one({"_id": relevant_doc_id})
 
     title_data, pgraph_data = transform_instance(
-        relevant_doc, title_pipeline, pgraph_pipeline, DEBUG=True
+        relevant_doc, title_pipeline, pgraph_pipeline, DEBUG=False
     )
     word_vec = title_data + pgraph_data
     feature_vec = gensim_model.infer_vector(word_vec).reshape(1, -1)
@@ -102,5 +103,11 @@ def get_posts():
     )
 
     related_docs = [docs[i] for i in related_docs_idxs]
+    for doc in related_docs:
+        doc["domain_name"] = urlparse(doc["href"][0]).netloc
+    print("related_docs keys: ", related_docs[0].keys())
 
     return (render_template("index.html", table_data=related_docs), 200)
+
+
+app.run(host="0.0.0.0", port=5000)

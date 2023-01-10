@@ -11,20 +11,49 @@
                     <button type="submit">Go</button>
                 </form>
                 
-                {%- for entry in table_data -%}
-                <div class="row">
-                    <a href="{{ entry['href'][0] }}">{{ entry['title'][0] }}</a>
-                    <p>Post Date: {{ entry['last_update_time'][0][:-6] }}</p>
-                </div>
-                {%- endfor -%}
+                <table border="0" cellpadding="0" cellspacing="0">
+                    {%- for entry in table_data -%}
+                    <tr class='athing' id='34320270'>
+                        <td align="right" valign="top" class="title">
+                            <span class="rank">{{loop.index}}.</span>
+                        </td>
+                        <td valign="top" class="votelinks">
+                            <center>
+                                <a id='up_34320270' href='vote?id=34320270&amp;how=up&amp;goto=news'>
+                                    <div class='votearrow' title='upvote'></div>
+                                </a>
+                            </center>
+                        </td>
+                        <td class="title">
+                            <span class="titleline">
+                                <a href={{ entry['href'][0] }}>{{ entry['title'][0] }}</a>
+                                <span class="sitebit comhead">
+                                     (
+                                    <a href="from?site=matthewminer.name">
+                                        <span class="sitestr">{{ entry['domain_name'] }}</span>
+                                    </a>
+                                    )
+                                </span>
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2"></td>
+                        <td class="subtext">
+                            <span class="subline">
+                                <span class="age" title={{ entry['insertion_time'][0] }}>
+                                    {{ entry['insertion_time'][0] }}
+                                </span>
+                            </span>
+                        </td>
+                    </tr>
+                    {%- endfor -%}
+                </table>
+                
             </div>
         </div>
         {%- block scripts -%}
             <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
-            <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-            <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
-            {%- block additional_js -%}{%- endblock -%}
-            <script src="{{ url_for('static', filename='js/main.js') }}"></script>
         {%- endblock -%}
     </body>
 </html>
